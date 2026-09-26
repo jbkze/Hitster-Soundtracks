@@ -1,25 +1,30 @@
 # Hitster Soundtracks Trainer
 
-Kleine Lern-App für die **Hitster Soundtracks**-Edition (deutsche Ausgabe, 154 Karten).
+Lern-App für die **Hitster „Movies & TV Soundtracks“**-Edition (deutsche Ausgabe, 154 Karten).
 
-1. Lied anhören (30-Sekunden-Hörprobe über die iTunes-API)
-2. **Aufdecken** → Film/Serie, Jahr, Komponist, Interpret und Titel werden angezeigt
-3. **Weiter**/**Überspringen** → nächste zufällige Karte
+1. **▶** – der Song läuft über **Spotify**
+2. **Aufdecken** – Film/Serie, Jahr (wie auf der Karte), Interpret, Komponist und Titel
+3. **Nächste Karte** / **⏭** – weiter zur nächsten zufällig gemischten Karte
 
-Extras: Filter Filme/Serien, „Später nochmal“ (Karte kommt ein paar Karten später wieder),
-Autoplay, durchsuchbare Liste aller Karten, Fortschritt wird im Browser gespeichert.
-Tastatur: `Leertaste` Play/Pause, `Enter` Aufdecken/Weiter, `→` Überspringen.
+Extras: ♥ markiert schwierige Karten (kommen ein paar Karten später noch mal), Filter Filme/Serien,
+Neu mischen, zurück zur vorherigen Karte, durchsuchbare Liste aller Karten, Fortschritt bleibt im Browser gespeichert.
+Tastatur: `Leertaste` Play/Pause, `Enter` Aufdecken/Weiter, `←`/`→` Karte zurück/vor.
+
+**Spotify:** Wer im selben Browser bei Spotify eingeloggt ist (Premium), hört die ganzen Songs,
+sonst spielt Spotify 30-Sekunden-Vorschauen. Falls der Browser den Start blockiert (v. a. iOS),
+erscheint ein Spotify-Player mit verdecktem Titel zum direkten Antippen.
 
 ## Auf GitHub Pages veröffentlichen
 
 Repository → **Settings → Pages** → *Build and deployment* → Source: **Deploy from a branch**,
-Branch auswählen (z. B. `main`), Ordner **/ (root)** → Save.
-Nach ~1 Minute ist die App unter `https://<user>.github.io/<repo>/` erreichbar.
+Branch auswählen, Ordner **/ (root)** → Save. Nach ~1 Minute läuft die App unter
+`https://<user>.github.io/<repo>/`.
 
-## Daten aktualisieren
+## Daten
 
-- `tools/cards.json` – Kartenliste (Interpret, Titel, Jahr der Aufnahme), Quelle: hitify.app
-- `tools/films.txt` – pro Karte (gleiche Reihenfolge): `Film (DE) | Originaltitel | Jahr | F/S | Komponist`
-- `tools/previews.json` – zugeordnete iTunes-Tracks (Hörprobe, Cover)
+- `tools/cards.csv` – offizielle Kartendaten (Titel, Interpret, Jahr, ISRC, YouTube) aus
+  [songseeker-hitster-playlists](https://github.com/andygruber/songseeker-hitster-playlists) (MIT)
+- `tools/films.txt` – pro Karte: `Film (DE) | Originaltitel | Jahr | F/S | Komponist`
+- `tools/spotify.json` – Spotify-Track pro Karte (Karten 1–100 aus der Playlist der Edition, Rest per Suche)
 
 Nach Änderungen `python3 tools/build_songs.py` ausführen – das erzeugt `songs.js`.

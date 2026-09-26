@@ -77,8 +77,8 @@ How I Met Your Mother||2005|S|The Solids
 Die Stunde des Siegers|Chariots of Fire|1981|F|
 Chicago||2002|F|John Kander & Fred Ebb
 Transformers||2007|F|
-Cops / Bad Boys||1989|S|Ian Lewis (Inner Circle)
-Breaking Dawn – Biss zum Ende der Nacht, Teil 1|The Twilight Saga: Breaking Dawn – Part 1|2011|F|
+Bad Boys – Harte Jungs|Bad Boys|1995|F|Ian Lewis (Inner Circle)
+Twilight – Breaking Dawn|The Twilight Saga: Breaking Dawn|2011|F|
 Dallas||1978|S|Jerrold Immel
 Der Herr der Ringe: Die Gefährten|The Lord of the Rings: The Fellowship of the Ring|2001|F|
 Braveheart||1995|F|
@@ -137,7 +137,7 @@ Barbie||2023|F|Mark Ronson & Andrew Wyatt
 Bram Stoker's Dracula||1992|F|
 Knight Rider||1982|S|Stu Phillips & Glen A. Larson
 Die Monster AG|Monsters, Inc.|2001|F|
-Django||1966|F|
+Django Unchained||2012|F|Luis Bacalov
 Emily in Paris||2020|S|
 Rocky||1976|F|
 The Last of Us||2023|S|

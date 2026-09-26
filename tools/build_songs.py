@@ -1,31 +1,49 @@
-"""Merge the card list (cards.json), film metadata (films.txt) and resolved
-iTunes previews (previews.json) into ../songs.js."""
-import json, os
+"""Build ../songs.js from the card list and metadata in this folder.
+
+cards.csv    official card data of the German "Movies & TV Soundtracks" edition
+             (from github.com/andygruber/songseeker-hitster-playlists, MIT)
+films.txt    one line per card: Film (DE) | original title | year | F/S | composer
+spotify.json Spotify track per card (same order as cards.csv)
+"""
+import csv, json, os, re
 
 here = os.path.dirname(os.path.abspath(__file__))
-cards = json.load(open(os.path.join(here, 'cards.json'), encoding='utf-8'))
+cards = list(csv.DictReader(open(os.path.join(here, 'cards.csv'), encoding='utf-8')))
 films = [l.rstrip('\n').split('|') for l in open(os.path.join(here, 'films.txt'), encoding='utf-8') if l.strip()]
-previews = json.load(open(os.path.join(here, 'previews.json'), encoding='utf-8'))
-assert len(cards) == len(films), (len(cards), len(films))
+spotify = json.load(open(os.path.join(here, 'spotify.json'), encoding='utf-8'))
+assert len(cards) == len(films) == len(spotify), (len(cards), len(films), len(spotify))
+
+# Obvious typos in the source data.
+FIXES = {'Marry Poppins': 'Mary Poppins', 'Also Spracht': 'Also sprach', 'Dominik Hause ': 'Dominik Hauser ',
+         'Das Phantom der Opera': 'Das Phantom der Oper', 'Der Rosarote Panther': 'Der rosarote Panther'}
+
+def fix(s):
+    for a, b in FIXES.items():
+        s = s.replace(a, b)
+    return s.strip()
+
+def clean_track(t):
+    return re.split(r' - (?:From|from|Theme from|Main Title|Remaster|\d{4} Remaster|Instrumental|Soundtrack|Studio|Single|End Title|Concert)| \((?:From|from|Original)', t)[0].strip()
 
 songs = []
-for i, (c, f) in enumerate(zip(cards, films)):
-    film, orig, year, kind, composer = f
-    p = previews.get(str(i)) or {}
-    art = p.get('art')
+for i, (c, f, sp) in enumerate(zip(cards, films, spotify)):
+    title = fix(c['Title'])
+    m = re.match(r'^(.*?) \((.*)\)$', title)
+    film_on_card, song = (m.group(1), m.group(2)) if m else (title, '')
+    _, orig, _, kind, composer = f
+    artist = fix(c['Artist']).replace(',', ', ').replace('  ', ' ')
     songs.append({
-        'id': i + 1,
-        'film': film,
-        'orig': orig,
-        'year': int(year),
+        'id': int(c['Card#']),
+        'film': film_on_card,
+        'orig': orig if orig and orig.lower() not in film_on_card.lower() else '',
+        'year': int(c['Year']),
         'kind': kind,
-        'composer': composer,
-        'artist': c['artist'],
-        'title': c['title'],
-        'cardYear': int(c['year']),
-        'preview': p.get('preview', ''),
-        'trackId': p.get('trackId'),
-        'art': art.replace('100x100bb', '300x300bb') if art else '',
+        'artist': artist,
+        'composer': composer if composer and composer.lower() not in artist.lower() else '',
+        'title': song or clean_track(sp['title']),
+        'spotify': sp['id'],
+        'cover': sp['cover'],
+        'youtube': c['URL'],
     })
 
 with open(os.path.join(here, '..', 'songs.js'), 'w', encoding='utf-8') as out:
@@ -33,4 +51,4 @@ with open(os.path.join(here, '..', 'songs.js'), 'w', encoding='utf-8') as out:
     out.write('window.SONGS = ')
     json.dump(songs, out, ensure_ascii=False, indent=1)
     out.write(';\n')
-print(len(songs), 'songs,', sum(1 for s in songs if s['preview']), 'with preview')
+print(len(songs), 'songs')
