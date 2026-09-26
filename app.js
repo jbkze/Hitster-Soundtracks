@@ -69,6 +69,7 @@
     position: 0,
     duration: 0,
     stallTimer: null,
+    listening: false,
   };
 
   window.onSpotifyIframeApiReady = (IFrameAPI) => {
@@ -88,21 +89,28 @@
     });
   };
 
+  // The embed also reports "not paused" while it merely loads a track, so the UI follows
+  // what the user asked for (wantPlay) and only uses the embed to confirm or to notice an end.
   function onPlayback(d) {
     if (!d) return;
     if (DEBUG) console.log('playback', JSON.stringify(d));
+    if (d.playingURI && player.uri && d.playingURI !== player.uri) return; // stale event
     player.position = d.position || 0;
     player.duration = d.duration || 0;
-    const nowPlaying = !d.isPaused && !d.isBuffering;
-    if (nowPlaying) {
+    const ended = player.duration > 0 && player.position >= player.duration - 300;
+    if (!d.isPaused && !d.isBuffering && d.position > 0 && !ended) {
       player.started = true;
+      player.playing = true;
+      player.wantPlay = true; // also when started by tapping the Spotify player itself
+      player.listening = true;
       clearTimeout(player.stallTimer);
       parkFallback();
+    } else if ((d.isPaused || ended) && player.started) {
+      // Paused inside Spotify or the track ended.
+      player.playing = false;
+      player.wantPlay = false;
+      clearTimeout(player.stallTimer);
     }
-    player.playing = !d.isPaused;
-    // Reaching the end of a track reports paused at position == duration.
-    if (d.isPaused && player.duration && player.position >= player.duration - 250) player.playing = false;
-    setBusy(!!d.isBuffering && player.wantPlay);
     render();
   }
 
@@ -123,38 +131,44 @@
 
   function play() {
     player.wantPlay = true;
-    if (!player.ctrl) { setBusy(true); return; }
-    setBusy(true);
-    if (player.started) player.ctrl.resume();
-    else player.ctrl.play();
+    render();
+    if (!player.ctrl) return; // the 'ready' listener starts playback once the embed exists
+    if (!player.started) player.ctrl.play();
+    else if (player.duration && player.position >= player.duration - 300) { player.ctrl.seek(0); player.ctrl.resume(); }
+    else player.ctrl.resume();
     // Some browsers (mostly iOS) block starting playback inside the iframe.
     // If nothing happens, show the Spotify player (title masked) so the user can tap it directly.
     clearTimeout(player.stallTimer);
     player.stallTimer = setTimeout(() => {
-      if (!player.playing) { showFallback(); setBusy(false); }
+      if (player.playing) return;
+      player.wantPlay = false;
+      showFallback();
+      render();
     }, 6000);
   }
 
   function pause() {
     player.wantPlay = false;
-    setBusy(false);
+    player.playing = false;
     clearTimeout(player.stallTimer);
-    if (player.ctrl) player.ctrl.pause();
+    if (player.ctrl && player.started) player.ctrl.pause();
+    render();
   }
 
   function togglePlay() {
-    if (player.playing) pause(); else play();
+    // "listening" survives the end of a track, so autoplay continues on the next card.
+    player.listening = !player.wantPlay;
+    if (player.wantPlay) pause(); else play();
   }
 
   function restart() {
     if (!player.ctrl) return;
-    player.ctrl.seek(0);
+    if (player.started) player.ctrl.seek(0);
     play();
   }
 
   function showFallback() { el.fallback.classList.remove('parked'); }
   function parkFallback() { el.fallback.classList.add('parked'); }
-  function setBusy(on) { el.spinner.hidden = !on; }
 
   // ---------- rendering ----------
 
@@ -171,10 +185,12 @@
   }
 
   function render() {
-    el.app.classList.toggle('playing', player.playing);
-    el.iconPlay.hidden = player.playing;
-    el.iconPause.hidden = !player.playing;
-    el.play.setAttribute('aria-label', player.playing ? 'Pause' : 'Abspielen');
+    const on = player.wantPlay;
+    el.app.classList.toggle('playing', on && player.playing);
+    el.iconPlay.hidden = on;
+    el.iconPause.hidden = !on;
+    el.spinner.hidden = !(on && !player.playing);
+    el.play.setAttribute('aria-label', on ? 'Pause' : 'Abspielen');
     const frac = player.duration ? Math.min(1, player.position / player.duration) : 0;
     el.waveRect.setAttribute('width', (300 * frac).toFixed(1));
     el.tCur.textContent = fmt(player.position);
@@ -210,11 +226,11 @@
     el.ytLink.href = s.youtube;
     el.ytLink.hidden = !s.youtube;
 
-    const wasPlaying = player.wantPlay;
+    const keepPlaying = state.autoplay && player.listening;
+    if (!keepPlaying) pause(); // stop the old track before switching
     loadTrack(s);
-    render();
-    if (state.autoplay && wasPlaying) play();
-    else pause();
+    if (keepPlaying) play();
+    else render();
   }
 
   function reveal() {
@@ -303,7 +319,7 @@
   // ---------- events ----------
 
   el.play.addEventListener('click', togglePlay);
-  el.restart.addEventListener('click', restart);
+  el.restart.addEventListener('click', () => { player.listening = true; restart(); });
   el.next.addEventListener('click', next);
   el.prev.addEventListener('click', prev);
   el.again.addEventListener('click', toggleAgain);
